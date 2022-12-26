@@ -1,6 +1,6 @@
 import gpiod
 from LePotatoPi.GPIO import consts
-
+from LePotatoPi.GPIO import PulseWidthManagement as Pulse
 
 class GPIO:
   used_pins = {}
@@ -54,3 +54,8 @@ class GPIO:
      # print("Releasing pin : ", self.used_pins)
       pinItem.release()
 
+  def PWM(self, pin, frequency):
+   # self.setup(pin, self.OUT)
+    p = self.used_pins[pin]
+    print("Pulse", dir(Pulse))
+    return Pulse.PulseWidthManagement(p, frequency)
