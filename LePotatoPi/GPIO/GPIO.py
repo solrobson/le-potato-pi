@@ -1,23 +1,23 @@
 import gpiod
-import consts
+from LePotatoPi.GPIO import consts
 
 
 class GPIO:
   used_pins = {}
-  INPUT = 1
-  OUTPUT = 0
+  IN = 1
+  OUT = 0
 
   BOARD = 10
   BCM = 11
   
   HIGH = 1
-  LOW = 1
+  LOW = 0
 
   def __init__(self):
     self.mode = self.BOARD
     self.chips = {
-      0: gpiod.chil(consts.CHIP0),
-      1: gpiod.chip(consts.CHIP1)
+      "gpiochip0": gpiod.chip(consts.CHIP0),
+      "gpiochip1": gpiod.chip(consts.CHIP1)
     }
 
   def setmode(self, mode):
@@ -27,19 +27,30 @@ class GPIO:
   def setup(self, pin, mode, initial = None):
     #setup(pin, GPIO.OUT, initial = GPIO.HIGH)
     mapped_pin = consts.LE_POTATO_PIN_TO_RPI_PIN[pin]
-    p = mapped_pin.chip.get_line(pin)
+    #print(mapped_pin.chip)
+    chip = self.chips[mapped_pin.chip]
+    #print("chip {}, pin {}", chip.name, pin)
+    p = chip.get_line(mapped_pin.pin)
+    #print(dir(p))
     config = gpiod.line_request()
     config.consumer = "Blink"
-    config.request_type = gpiod.line_request.DIRECTION_OUTPUT if mode == self.OUTPUT else gpiod.line_request.DIRECTION_INPUT
+    config.request_type = gpiod.line_request.DIRECTION_OUTPUT if mode == self.OUT else gpiod.line_request.DIRECTION_INPUT
     config.flags = gpiod.line_request.FLAG_BIAS_PULL_UP
 
     p.request(config)
     self.used_pins[pin] = p
 
   def output(self, pin, level):
+    #print("output: ", pin, level)
+    #print(self.used_pins)
     p = self.used_pins[pin]
+    #print(dir(p))
     p.set_value(level)
+    print("output set")
 
   def cleanup(self):
-    pass
+    while len(self.used_pins ) > 1:
+      pinItem = self.used_pins.popitem()
+     # print("Releasing pin : ", self.used_pins)
+      pinItem.release()
 
