@@ -1,6 +1,10 @@
 import gpiod
 from LePotatoPi.GPIO import consts
 from LePotatoPi.GPIO import PulseWidthManagement as Pulse
+from datetime import timedelta
+from threading import Thread
+import json
+import time
 
 class GPIO:
   used_pins = {}
@@ -17,6 +21,12 @@ class GPIO:
   PUD_OFF = 0
   PUD_DOWN = 1
   PUD_UP = 2
+
+  NO_EDGE = 0
+  RISING = 1
+  FALLING = 2
+  BOTH = 3
+
 
   def __init__(self):
     self.mode = self.BOARD
@@ -67,6 +77,7 @@ class GPIO:
     p = self.used_pins[pin]
     p.set_value(level)
     print("output set")
+    
 
   def input(self, channel):
     p = self.used_pins[channel]
@@ -74,10 +85,51 @@ class GPIO:
 
   def cleanup(self):
     while len(self.used_pins ) > 1:
-      pinItem = self.used_pins.popitem()
+      pinItem = self.used_pins.popitem()[1]
+      print(dir(pinItem))
       pinItem.release()
 
   def PWM(self, pin, frequency):
     p = self.used_pins[pin]
     print("Pulse", dir(Pulse))
     return Pulse.PulseWidthManagement(p, frequency)
+  
+  def add_event_detect(self, gpio, edge, callback=None, bouncetime=None):
+    pin_edge = self.NO_EDGE
+
+    if edge == self.FALLING:
+      pin_edge = gpiod.line_request.EVENT_FALLING_EDGE
+    elif edge == self.RISING:
+      pin_edge = gpiod.line_request.EVENT_RISING_EDGE
+    else:
+      pin_edge = gpiod.line_request.EVENT_BOTH_EDGES
+    
+    p = self.used_pins[gpio]
+
+    config = gpiod.line_request()
+    config.consumer = "Blink"
+    config.request_type = pin_edge
+    config.flags = p.bias
+    dir(print(p))
+    event_checker = Thread(target=self._read_event, args=(p, callback, bouncetime))
+    event_checker.start()
+
+  def _read_event(self, pin, callback, bouncetime):
+    print(dir(self))
+    if bouncetime == None:
+      bouncetime = 10
+    print(pin.direction)
+    previous = pin.get_value()
+    while pin.is_requested():
+      #if pin.event_wait(timedelta(seconds=bouncetime)):
+      if previous == pin.get_value():
+        #print(previous, '==', pin.get_value())
+        continue
+      previous = pin.get_value()
+      # There seem's to be a bug that is preventing the event_read() command from running.
+      #  When this commands run an error return saying "No Such Device"  This error also occurs
+      # in gpiomon
+      # event = pin.event_read()
+      # if event.event_type == pin.bias or event.event_type == gpiod.line_request.EVENT_BOTH_EDGES:
+      callback()
+
