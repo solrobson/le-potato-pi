@@ -14,8 +14,10 @@ import LePotatoPi.GPIO.GPIO as GPIO
 
 LePotatoPi is a work in progress and the main goal is to allow people to follow tutorials created for Raspberry Pi on the Libre Le Potato.
 
+import with
 
-import with 
+```
 pip install LePotatoPi.GPIO
+```
 
 note: the BOARD layout does not work, you must use BGM
