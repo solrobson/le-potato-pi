@@ -20,7 +20,7 @@ class PulseWidthManagement(Thread):
 		self.thread.start()
 
 	def stop(self):
-		while self.stopped == false:
+		while self.stopped == False:
 			self.to_stop = True
 			time.sleep(0.01)
 
